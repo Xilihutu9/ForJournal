@@ -8,7 +8,7 @@ from fewshot_re_kit.data_loader import get_loader
 from fewshot_re_kit.framework import FewShotREFramework
 from fewshot_re_kit.sentence_encoder import BERTSentenceEncoder
 import models
-from models.hcrp import HCRP
+from models.hcrp_head_tail import HCRP
 import sys
 import torch
 from torch import optim, nn
