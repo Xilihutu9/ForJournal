@@ -73,7 +73,9 @@ def main():
                         help='sgd / adam / adamw')
     parser.add_argument('--hidden_size', default=768, type=int,
                         help='hidden size')
-    parser.add_argument('--load_ckpt', default='./checkpoint/HCRP-bert-train_wiki-val_wiki-10-1.pth.tar',
+    # parser.add_argument('--load_ckpt', default='./checkpoint/HCRP-bert-train_wiki-val_wiki-10-1.pth.tar',
+    #                     help='load ckpt')
+    parser.add_argument('--load_ckpt', default=None,
                         help='load ckpt')
     parser.add_argument('--save_ckpt', default=None,
                         help='save ckpt')
