@@ -104,7 +104,7 @@ class HCRP(fewshot_re_kit.framework.FewShotREModel):
         #[B,1,128]
         support_mask=support['mask'].unsqueeze(1)&(self.a+self.c)#[10,128,128] 
         
-        ins_att_score_s =self.phase_attn(support_score1,support_mask,ins_att_score_s,support['mask'],support_loc, support['pos1'], support['pos2'])
+        ins_att_score_s, keyOfSupportIndex =self.phase_attn(support_score1,support_mask,ins_att_score_s,support['mask'],support_loc, support['pos1'], support['pos2'])
         
         ins_att_score_s = ins_att_score_s.unsqueeze(-1)  # (B * N * K, L, 1)
         #[ 40, 128, 1]
@@ -142,7 +142,7 @@ class HCRP(fewshot_re_kit.framework.FewShotREModel):
         ins_att_score_q=torch.div(ins_att_score_q,math.sqrt(self.hidden_size))
         query_query_norm=torch.div(query_query, math.sqrt(self.hidden_size))#[10,128,128] 
         query_mask=query['mask'].unsqueeze(1)&(self.a+self.c)#[10,128,128]
-        ins_att_score_q =self.phase_attn(query_query_norm,query_mask,ins_att_score_q, query['mask'],query_loc,query['pos1'], query['pos2'])
+        ins_att_score_q, keyOfQueryIndex =self.phase_attn(query_query_norm,query_mask,ins_att_score_q, query['mask'],query_loc,query['pos1'], query['pos2'])
         ins_att_score_q =  ins_att_score_q.unsqueeze(-1)  # (B * total_Q, L, 1)
         #[40,128,1]
         query_loc = torch.sum(ins_att_score_q * query_loc, dim=1)  # (B * total_Q, D)
@@ -173,7 +173,8 @@ class HCRP(fewshot_re_kit.framework.FewShotREModel):
         minn, _ = logits.min(-1) #[4,10]
         logits = torch.cat([logits, minn.unsqueeze(2) - 1], 2)  # (B, total_Q, N + 1)
         #[4,10,11]
-        _, pred = torch.max(logits.view(-1, N + 1), 1)
+        logits = logits.view(-1, N+1)
+        _, pred = torch.max(logits, 1)
 
         logits_proto, labels_proto, sim_scalar = None, None, None
 
@@ -223,7 +224,7 @@ class HCRP(fewshot_re_kit.framework.FewShotREModel):
             sim_scalar = torch.softmax(sim_scalar, dim=-1)
             sim_scalar = sim_scalar.repeat(total_Q, 1).t().reshape(-1)  # (B*totalQ)
             #[40]
-        return logits, pred, logits_proto, labels_proto, sim_scalar,0
+        return logits.tolist(), pred, logits_proto, labels_proto, sim_scalar,0, keyOfSupportIndex, keyOfQueryIndex
 
 
     def phase_attn(self,input_score1, mask1, input_score2, mask2, input_loc, pos1, pos2):    
@@ -289,7 +290,7 @@ class HCRP(fewshot_re_kit.framework.FewShotREModel):
         final_phase_attn = 0.6*seg_score + 0.2*cons_phase_score + 0.1*related_phase_score+0.1*general_phase_score#[10,768]#???权重调整
         #[ 40,128]
         final_phase_attn=self.dropout(final_phase_attn)
-        return final_phase_attn     
+        return final_phase_attn, seg_i     
 
 
     def gcn(self, support_loc, N, K, B):

@@ -13,7 +13,7 @@
             "justMyCode": true
         },
         {
-            "name": "Debug Current File",
+            "name": "Train: Debug Current File",
             "type": "python",
             "request": "launch",
             "program": "${file}",
@@ -22,7 +22,23 @@
             "args": [
                 "--trainN", "5",
                 "--N", "5",
-                "--save_ckpt", "checkpoint/head_key_tail-5-5.pth.tar"
+                "--save_ckpt", "checkpoint/head_key_tail-5-1.pth.tar"
+            ]
+        },
+        {
+            "name": "Test: Debug Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--trainN", "5",
+                "--N", "5",
+                "--load_ckpt", "checkpoint/head_key_tail-5-5.pth.tar",
+                "--only_test", "True",
+                "--error_output", "True",
+                "--error_file", "errorOutput/head_key_tail-5-1.txt"
             ]
         }
     ]

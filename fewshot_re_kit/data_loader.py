@@ -53,6 +53,7 @@ class FewRelDataset(data.Dataset):
         support_set = {'word': [], 'pos1': [], 'pos2': [], 'mask': []}
         query_set = {'word': [], 'pos1': [], 'pos2': [], 'mask': []}
         query_label = []
+        support_label = []
         for i, class_name in enumerate(target_classes):
             if self.ispubmed:
                 if class_name in self.pid2name.keys():
@@ -81,8 +82,9 @@ class FewRelDataset(data.Dataset):
                 count += 1
             
             query_label += [i] * self.Q
+            support_label.append(self.pid2name[class_name])
 
-        return support_set, query_set, query_label, relation_set
+        return support_set, query_set, query_label, relation_set, support_label
 
     def __len__(self):
         return 1000000000
@@ -93,7 +95,8 @@ def collate_fn(data):
     batch_query = {'word': [], 'pos1': [], 'pos2': [], 'mask': []}
     batch_relation = {'word': [], 'mask': []}
     batch_label = []
-    support_sets, query_sets, query_labels, relation_sets = zip(*data)
+    batch_support_label = []
+    support_sets, query_sets, query_labels, relation_sets, support_label = zip(*data)
 
     for i in range(len(support_sets)):
         for k in support_sets[i]:
@@ -103,6 +106,7 @@ def collate_fn(data):
         for k in relation_sets[i]:
             batch_relation[k] += relation_sets[i][k]
         batch_label += query_labels[i]
+        batch_support_label += support_label[i]
 
     for k in batch_support:
         batch_support[k] = torch.stack(batch_support[k], 0)
@@ -111,7 +115,7 @@ def collate_fn(data):
     for k in batch_relation:
         batch_relation[k] = torch.stack(batch_relation[k], 0)
     batch_label = torch.tensor(batch_label)
-    return batch_support, batch_query, batch_label, batch_relation
+    return batch_support, batch_query, batch_label, batch_relation, batch_support_label
 
 
 def get_loader(name, pid2name, encoder, N, K, Q, batch_size,

@@ -2,7 +2,7 @@ import os
 
 
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 from fewshot_re_kit.data_loader import get_loader
 from fewshot_re_kit.framework import FewShotREFramework
@@ -22,6 +22,10 @@ import time
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--error_output', default=False, type=bool,
+                        help='whether output error list')
+    parser.add_argument('--error_file', default=None,
+                        help='file stores error output')
     parser.add_argument('--root', default='./data',
                         help='file root')
     parser.add_argument('--train', default='train_wiki',
@@ -146,7 +150,7 @@ def main():
         
     #测试
     T3 = time.clock()
-    acc = framework.eval(model, N, K, Q, opt.test_iter, ckpt=ckpt)
+    acc = framework.eval(model, N, K, Q, opt.test_iter, opt.error_output, opt.error_file, ckpt=ckpt, encoder=sentence_encoder)
     T4 = time.clock()
     print('total evaluation time:%s s' % (T4 - T3))
     print("RESULT: %.2f" % (acc * 100))

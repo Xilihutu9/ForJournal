@@ -171,7 +171,7 @@ class FewShotREFramework:
         model.train()
         best_acc, iter_loss, iter_right, iter_sample = 0.0, 0.0, 0.0, 0.0
         for it in range(start_iter, start_iter + train_iter):
-            support, query, label, rel_text = next(self.train_data_loader)
+            support, query, label, rel_text, support_label = next(self.train_data_loader)
             if torch.cuda.is_available():
                 for k in support:
                     support[k] = support[k].cuda()
@@ -180,7 +180,7 @@ class FewShotREFramework:
                 for k in rel_text:
                     rel_text[k] = rel_text[k].cuda()
                 label = label.cuda()
-            logits, pred, logits_proto, labels_proto, sim_task, penalty = model(support, query, rel_text, N_for_train, K, Q * N_for_train)
+            logits, pred, logits_proto, labels_proto, sim_task, penalty, keyOfSupportIndex, keyOfQueryIndex = model(support, query, rel_text, N_for_train, K, Q * N_for_train)
         
             loss = model.loss(logits, label, sim_task) / float(grad_iter)+  1.0 * self.bce_loss(logits_proto, labels_proto)
             right = model.accuracy(pred, label)
@@ -204,7 +204,7 @@ class FewShotREFramework:
             sys.stdout.flush()
 
             if (it+1) % val_step == 0:
-                acc = self.eval(model, N_for_eval, K, Q, val_iter)
+                acc = self.eval(model, N_for_eval, K, Q, val_iter, error_output=False, error_file=None)
                 model.train()
                 if acc > best_acc:
                     print('Best checkpoint')
@@ -219,8 +219,9 @@ class FewShotREFramework:
 
     def eval(self,
              model, N, K, Q,
-             eval_iter,
-             ckpt=None):
+             eval_iter, error_output, error_file,
+             ckpt=None,
+             encoder = None):
         '''
         model: a FewShotREModel instance
         B: Batch size
@@ -252,7 +253,7 @@ class FewShotREFramework:
         with torch.no_grad():
             for it in range(eval_iter):
 
-                support, query, label, rel_text = next(eval_dataset)
+                support, query, label, rel_text, support_label = next(eval_dataset)
                 if torch.cuda.is_available():
                     for k in support:
                         support[k] = support[k].cuda()
@@ -261,8 +262,28 @@ class FewShotREFramework:
                     for k in rel_text:
                         rel_text[k] = rel_text[k].cuda()
                     label = label.cuda()
-                logits, pred, logits_proto, labels_proto, sim_task, penalty= model(support, query, rel_text, N, K, Q * N, is_eval=True)
+                logits, pred, logits_proto, labels_proto, sim_task, penalty, keyOfSupportIndex, keyOfQueryIndex = model(support, query, rel_text, N, K, Q * N, is_eval=True)
 
+                if error_output:
+                    f = open(error_file,'a')
+                    indexError = [i for i in range(len(pred)) if pred[i] != label[i]]
+                    for i in indexError:
+                        f.write('------\n')
+                        indexTask = int(i / N)
+                        c = 1
+                        for j in range(indexTask*N, N*(indexTask+1)):
+                            tmpSupport = support['word'][j].tolist()
+                            insSupport = "support" + str(c) + "(" + support_label[j][0] + "): " + encoder.tokenizer.decode(tmpSupport[:tmpSupport.index(0)]) + '\n'
+                            f.write(insSupport)
+                            f.write("keyword(" + str(keyOfSupportIndex.tolist()[j]) + '): ' + encoder.tokenizer.decode((support['word'].tolist())[j][keyOfSupportIndex[j]]) + '\n')
+                            c += 1
+                        tmpQuery = query['word'][i].tolist()
+                        insQuery = "query" + str(i - (indexTask*N) + 1) + ": " + encoder.tokenizer.decode(tmpQuery[:tmpQuery.index(0)]) + '\n'
+                        f.write('---\n' + insQuery + 'keyword(' + str(keyOfQueryIndex.tolist()[i]) + '): ' + encoder.tokenizer.decode(tmpQuery[keyOfQueryIndex[i]]) + '\n')
+                        f.write('---\n' + str(logits[i]) + '\n')
+                        f.write('------\n\n')
+                    f.close()
+                
                 right = model.accuracy(pred, label)
                 iter_right += self.item(right.data)
                 iter_sample += 1
