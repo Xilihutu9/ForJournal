@@ -104,7 +104,7 @@ class HCRP(fewshot_re_kit.framework.FewShotREModel):
         #[B,1,128]
         support_mask=support['mask'].unsqueeze(1)&(self.a+self.c)#[10,128,128] 
         
-        ins_att_score_s =self.phase_attn(support_score1,support_mask,ins_att_score_s,support['mask'],support_loc)
+        ins_att_score_s =self.phase_attn(support_score1,support_mask,ins_att_score_s,support['mask'],support_loc, support['pos1'], support['pos2'])
         
         ins_att_score_s = ins_att_score_s.unsqueeze(-1)  # (B * N * K, L, 1)
         #[ 40, 128, 1]
@@ -142,7 +142,7 @@ class HCRP(fewshot_re_kit.framework.FewShotREModel):
         ins_att_score_q=torch.div(ins_att_score_q,math.sqrt(self.hidden_size))
         query_query_norm=torch.div(query_query, math.sqrt(self.hidden_size))#[10,128,128] 
         query_mask=query['mask'].unsqueeze(1)&(self.a+self.c)#[10,128,128]
-        ins_att_score_q =self.phase_attn(query_query_norm,query_mask,ins_att_score_q, query['mask'],query_loc)
+        ins_att_score_q =self.phase_attn(query_query_norm,query_mask,ins_att_score_q, query['mask'],query_loc,query['pos1'], query['pos2'])
         ins_att_score_q =  ins_att_score_q.unsqueeze(-1)  # (B * total_Q, L, 1)
         #[40,128,1]
         query_loc = torch.sum(ins_att_score_q * query_loc, dim=1)  # (B * total_Q, D)
@@ -226,7 +226,7 @@ class HCRP(fewshot_re_kit.framework.FewShotREModel):
         return logits, pred, logits_proto, labels_proto, sim_scalar,0
 
 
-    def phase_attn(self,input_score1, mask1, input_score2, mask2, input_loc):    
+    def phase_attn(self,input_score1, mask1, input_score2, mask2, input_loc, pos1, pos2):    
         #连续性计算
         constituent=self.compute_constituent(input_score1, mask1) #[40,128,128]
         input_score3= input_score2.masked_fill(mask2==0, 0)
@@ -241,21 +241,43 @@ class HCRP(fewshot_re_kit.framework.FewShotREModel):
         #[10,128] 
         for i in range(constituent.size(0)):
             d= torch.index_select(constituent[i], dim = 0, index =seg_i[i]) #[5,128]
-            cons_phase_score[i]=d
+            p1 = torch.index_select(constituent[i], dim = 0, index =pos1[i])
+            p2 = torch.index_select(constituent[i], dim = 0, index =pos2[i])
+            cons_phase_score[i]=(d + p1 + p2)/3
             if seg_i[i]==0:
                 cons_phase_score[i][seg_i[i]]+=d[0][seg_i[i]+1]
             elif seg_i[i]==self.max_len-1:
-                cons_phase_score[i][seg_i[i]]+=d[0][seg_i[i]-1]               
+                cons_phase_score[i][seg_i[i]]+=d[0][seg_i[i]-1]
             else:
                 cons_phase_score[i][seg_i[i]]+=torch.max(d[0][seg_i[i]-1]+d[0][seg_i[i]+1])
+            if pos1[i]==0:
+                cons_phase_score[i][pos1[i]]+=p1[0][pos1[i]+1]
+            elif pos1[i]==self.max_len-1:
+                cons_phase_score[i][pos1[i]]+=p2[0][pos1[i]-1]
+            else:
+                cons_phase_score[i][pos1[i]]+=torch.max(d[0][pos1[i]-1]+d[0][pos1[i]+1])
+            if pos2[i]==0:
+                cons_phase_score[i][pos2[i]]+=p1[0][pos2[i]+1]
+            elif pos2[i]==self.max_len-1:
+                cons_phase_score[i][pos2[i]]+=p2[0][pos2[i]-1]
+            else:
+                cons_phase_score[i][pos2[i]]+=torch.max(d[0][pos2[i]-1]+d[0][pos2[i]+1])
+
 
         #3)related
         related_phase_score =torch.zeros(constituent.size(0),self.max_len).cuda()
         #[10,5,128]
         for i in range(related_phase_score.size(0)):
-            related_phase_score[i]= torch.index_select(input_score1[i], dim = 0, index =seg_i[i])#[5,128]
+            d = torch.index_select(input_score1[i], dim = 0, index =seg_i[i])
+            p1 = torch.index_select(input_score1[i], dim = 0, index =pos1[i])
+            p2 = torch.index_select(input_score1[i], dim = 0, index =pos2[i])
+            related_phase_score[i]= (d + p1 + p2)/3
             related_phase_score[i][seg_i[i]]=0
             related_phase_score[i][seg_i[i]],_=related_phase_score[i].max(-1)
+            related_phase_score[i][pos1[i]]=0
+            related_phase_score[i][pos1[i]],_=related_phase_score[i].max(-1)
+            related_phase_score[i][pos2[i]]=0
+            related_phase_score[i][pos2[i]],_=related_phase_score[i].max(-1)
         
         related_phase_score = self.l2norm(related_phase_score)
         seg_score=F.softmax(torch.tanh(input_score2), dim=1)
