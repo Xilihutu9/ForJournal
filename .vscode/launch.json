@@ -33,12 +33,12 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "--trainN", "5",
-                "--N", "5",
-                "--load_ckpt", "checkpoint/head_key_tail-5-5.pth.tar",
+                "--trainN", "2",
+                "--N", "2",
+                "--load_ckpt", "checkpoint/hcrp_cur-2-1.pth.tar",
                 "--only_test", "True",
                 "--error_output", "True",
-                "--error_file", "errorOutput/head_key_tail-5-1.txt"
+                "--error_file", "errorOutput/inverse-5-1.txt"
             ]
         }
     ]

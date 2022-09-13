@@ -15,6 +15,7 @@ class HCRP(fewshot_re_kit.framework.FewShotREModel):
         self.hidden_size = hidden_size
         self.max_len = max_len
         self.rel_glo_linear = nn.Linear(hidden_size, hidden_size * 2)
+        self.head_tail_linear = nn.Linear(max_len*3, max_len)
         self.temp_proto = 1  # moco 0.07
         self.dropout=nn.Dropout(0.1)
         
@@ -244,7 +245,8 @@ class HCRP(fewshot_re_kit.framework.FewShotREModel):
             d= torch.index_select(constituent[i], dim = 0, index =seg_i[i]) #[5,128]
             p1 = torch.index_select(constituent[i], dim = 0, index =pos1[i])
             p2 = torch.index_select(constituent[i], dim = 0, index =pos2[i])
-            cons_phase_score[i]=0.6 * d + 0.2 * p1 +0.2 * p2
+            tri = torch.cat((d, p1, p2), dim=-1)
+            cons_phase_score[i]= self.head_tail_linear(tri)
             if seg_i[i]==0:
                 cons_phase_score[i][seg_i[i]]+=d[0][seg_i[i]+1]
             elif seg_i[i]==self.max_len-1:
@@ -272,7 +274,8 @@ class HCRP(fewshot_re_kit.framework.FewShotREModel):
             d = torch.index_select(input_score1[i], dim = 0, index =seg_i[i])
             p1 = torch.index_select(input_score1[i], dim = 0, index =pos1[i])
             p2 = torch.index_select(input_score1[i], dim = 0, index =pos2[i])
-            related_phase_score[i]= 0.6 * d + 0.2 * p1 +0.2 * p2
+            tri = torch.cat((d, p1, p2), dim = -1)
+            related_phase_score[i]= self.head_tail_linear(tri)
             related_phase_score[i][seg_i[i]]=0
             related_phase_score[i][seg_i[i]],_=related_phase_score[i].max(-1)
             related_phase_score[i][pos1[i]]=0
