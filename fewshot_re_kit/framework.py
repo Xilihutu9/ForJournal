@@ -263,7 +263,8 @@ class FewShotREFramework:
                         rel_text[k] = rel_text[k].cuda()
                     label = label.cuda()
                 logits, pred, logits_proto, labels_proto, sim_task, penalty, keyOfSupportIndex, keyOfQueryIndex = model(support, query, rel_text, N, K, Q * N, is_eval=True)
-
+                logits = logits.tolist()
+                
                 if error_output:
                     f = open(error_file,'a')
                     indexError = [i for i in range(len(pred)) if pred[i] != label[i]]

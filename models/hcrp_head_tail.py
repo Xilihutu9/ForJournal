@@ -224,7 +224,7 @@ class HCRP(fewshot_re_kit.framework.FewShotREModel):
             sim_scalar = torch.softmax(sim_scalar, dim=-1)
             sim_scalar = sim_scalar.repeat(total_Q, 1).t().reshape(-1)  # (B*totalQ)
             #[40]
-        return logits.tolist(), pred, logits_proto, labels_proto, sim_scalar,0, keyOfSupportIndex, keyOfQueryIndex
+        return logits, pred, logits_proto, labels_proto, sim_scalar,0, keyOfSupportIndex, keyOfQueryIndex
 
 
     def phase_attn(self,input_score1, mask1, input_score2, mask2, input_loc, pos1, pos2):    
@@ -244,7 +244,7 @@ class HCRP(fewshot_re_kit.framework.FewShotREModel):
             d= torch.index_select(constituent[i], dim = 0, index =seg_i[i]) #[5,128]
             p1 = torch.index_select(constituent[i], dim = 0, index =pos1[i])
             p2 = torch.index_select(constituent[i], dim = 0, index =pos2[i])
-            cons_phase_score[i]=(d + p1 + p2)/3
+            cons_phase_score[i]=0.6 * d + 0.2 * p1 +0.2 * p2
             if seg_i[i]==0:
                 cons_phase_score[i][seg_i[i]]+=d[0][seg_i[i]+1]
             elif seg_i[i]==self.max_len-1:
@@ -272,7 +272,7 @@ class HCRP(fewshot_re_kit.framework.FewShotREModel):
             d = torch.index_select(input_score1[i], dim = 0, index =seg_i[i])
             p1 = torch.index_select(input_score1[i], dim = 0, index =pos1[i])
             p2 = torch.index_select(input_score1[i], dim = 0, index =pos2[i])
-            related_phase_score[i]= (d + p1 + p2)/3
+            related_phase_score[i]= 0.6 * d + 0.2 * p1 +0.2 * p2
             related_phase_score[i][seg_i[i]]=0
             related_phase_score[i][seg_i[i]],_=related_phase_score[i].max(-1)
             related_phase_score[i][pos1[i]]=0
