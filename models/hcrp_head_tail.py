@@ -153,7 +153,10 @@ class HCRP(fewshot_re_kit.framework.FewShotREModel):
         
         # local prototypes  (可以先通过傅里叶变换进行传递)
         ###傅里叶
-        support_loc=torch.mean(support_loc, 2).unsqueeze(2)+rel_text_loc.unsqueeze(2)#[4,10,1,768]????????
+        # support_loc=torch.mean(support_loc, 2).unsqueeze(2)+rel_text_loc.unsqueeze(2)#[4,10,1,768]????????
+        c = support_loc * query_loc.unsqueeze(2)
+        alpha = F.softmax(torch.sum(torch.tanh(support_loc * query_loc.unsqueeze(2)), dim=-1), dim=-1).unsqueeze(-1)  # (B, N, total_Q)
+        support_loc = torch.sum(alpha * support_loc, dim=-2).unsqueeze(2) + rel_text_loc.unsqueeze(2)  # (B, total_Q, D)
         support_loc1=self.gcn(support_loc,N,1,B) #[4,10,1,768]
         
         ###
