@@ -18,12 +18,12 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "justMyCode": true,
+            "justMyCode": false,
             "args": [
                 "--trainN", "5",
                 "--N", "5",
                 "--K", "5",
-                "--save_ckpt", "checkpoint/head_key_tail-5-1.pth.tar"
+                "--save_ckpt", "checkpoint/head_key_tail-5-1.pth.tar",
             ]
         },
         {

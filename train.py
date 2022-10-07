@@ -89,8 +89,10 @@ def main():
                         help='bert / roberta pre-trained checkpoint')
     parser.add_argument('--seed', default=19961228, type=int,
                         help='seed')
-    parser.add_argument('--path', default=None,
+    parser.add_argument('--path', default='./pretrain/CP-2',
                         help='path to ckpt')
+    parser.add_argument('--mode', default="CM",
+                        help = 'mode {CM, OC, OM}')
 
     opt = parser.parse_args()
     random.seed(opt.seed)
@@ -112,7 +114,7 @@ def main():
     print("max_length: {}".format(max_length))
 
     # encoder
-    sentence_encoder = BERTSentenceEncoder(opt.pretrain_ckpt, max_length, path=opt.path)
+    sentence_encoder = BERTSentenceEncoder(opt.pretrain_ckpt, max_length, path=opt.path, mode = opt.mode)
  
     # train / val / test data loader
     train_data_loader = get_loader(opt.train, opt.pid2name, sentence_encoder,

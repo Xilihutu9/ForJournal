@@ -6,15 +6,16 @@ from transformers import BertTokenizer, BertModel
 
 class BERTSentenceEncoder(nn.Module):
 
-    def __init__(self, pretrain_path, max_length, path):
+    def __init__(self, pretrain_path, max_length, path, mode):
         nn.Module.__init__(self)
-        self.bert = BertModel.from_pretrained('./pretrain')
+        self.bert = BertModel.from_pretrained('./pretrain/pretrain')
         if path is not None and path != "None":
             self.bert.load_state_dict(torch.load(path)["bert-base"])
             print("We load " + path + " to train!")
         self.max_length = max_length
+        self.mode = mode
         self.max_length_name = 8
-        self.tokenizer = BertTokenizer.from_pretrained('./pretrain/bert-base-uncased-vocab.txt')
+        self.tokenizer = BertTokenizer.from_pretrained('./pretrain/pretrain/bert-base-uncased-vocab.txt')
 
     def forward(self, inputs, cat=True):
         #inputs dict 4
