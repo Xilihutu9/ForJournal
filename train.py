@@ -2,7 +2,7 @@ import os
 
 
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 from fewshot_re_kit.data_loader import get_loader
 from fewshot_re_kit.framework import FewShotREFramework
@@ -51,13 +51,13 @@ def main():
                         help='Num of query per class')
     parser.add_argument('--batch_size', default=4, type=int,
                         help='batch size')
-    parser.add_argument('--train_iter', default=30000, type=int,
+    parser.add_argument('--train_iter', default=15000, type=int,
                         help='num of iters in training')
-    parser.add_argument('--val_iter', default=1000, type=int,
+    parser.add_argument('--val_iter', default=500, type=int,
                         help='num of iters in validation')
-    parser.add_argument('--test_iter', default=10000, type=int,
+    parser.add_argument('--test_iter', default=5000, type=int,
                         help='num of iters in testing')
-    parser.add_argument('--val_step', default=1000, type=int,
+    parser.add_argument('--val_step', default=500, type=int,
                         help='val after training how many iters')
     parser.add_argument('--model', default='HCRP',
                         help='model name')
@@ -89,7 +89,7 @@ def main():
                         help='bert / roberta pre-trained checkpoint')
     parser.add_argument('--seed', default=19961228, type=int,
                         help='seed')
-    parser.add_argument('--path', default='./pretrain/CP-2',
+    parser.add_argument('--path', default=None,
                         help='path to ckpt')
     parser.add_argument('--mode', default="CM",
                         help = 'mode {CM, OC, OM}')
